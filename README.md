@@ -1,2 +1,2 @@
 # IoTFinalProject
-Parking lot control system based CV with telegram bot
+Parking lot control system based on CV with telegram bot
