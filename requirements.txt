@@ -1,0 +1,6 @@
+requests==2.23.0
+Flask==1.1.2
+pyngrok==1.4.2
+python_telegram_bot==12.2.0
+pexpect==4.7.0
+telegram==12.2.0
