@@ -121,7 +121,7 @@ for i in cnts:
         #image = cv2.rectangle(frame, beg_point, end_point, color, 2)
         points = np.array(sorted([[approx[i][0][0], approx[i][0][1]] for i in range(4)]))
 
-        #image = draw_border(frame, *points, 15)
+        image = draw_border(frame, *points, 15)
         #xmax, ymax = beg_point
         #xmin, ymin = end_point
         #cropped_image = image[ymin:ymax, xmin:xmax]
@@ -135,6 +135,7 @@ print(text.strip())
 # 釋放攝影機
 # 關閉所有 OpenCV 視窗
 cv2.destroyAllWindows()
+cv2.imshow("target", image)
 cv2.imshow("final", final)
 cv2.waitKey(0)
 

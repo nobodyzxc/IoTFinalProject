@@ -5,6 +5,8 @@ import telegram, requests
 from functools import partial
 from getpass import getpass
 
+from reg_plate_gen import gen_plate
+
 from flask import Flask, request
 from telegram.ext import Dispatcher, MessageHandler, Filters, Updater, StringCommandHandler, CommandHandler, CallbackQueryHandler, ConversationHandler
 from telegram import Location, InlineKeyboardMarkup, InlineKeyboardButton
@@ -103,14 +105,18 @@ def listRegistration(bot, update):
         update.message.reply_text("尚無車牌，請先註冊")
 
 def addRegistration(bot, update):
-    new = update.message.text.split()[1:]
+    new = update.message.text.split()[1]
     data = json.load(open('data.json'))
     plates = data.get(update.message.chat.id, [])
-    plates += new
+    plates += [new]
     data[update.message.chat.id] = plates
     with open('data.json', 'w') as output:
         json.dump(data, output)
-    update.message.reply_text(f'{", ".join(new)} 已加入')
+
+    plate = gen_plate(new)
+
+    bot.send_photo(update.message.chat.id, photo=plate)
+    update.message.reply_text(f'{new} 已加入')
 
 def start(bot, update):
     update.message.reply_text("❓ 您的Chat ID為 {}\n使用 /register 指令註冊".format(update.message.chat.id))
@@ -169,7 +175,9 @@ dispatcher.add_handler(CallbackQueryHandler(play))
 
 def main():
     print("============ Setup ngrok ======================")
-    ngrok.set_auth_token(decrypt_token(os.path.join('meta', 'encrypted.ngrok.token')))
+    token = decrypt_token(os.path.join('meta', 'encrypted.ngrok.token'))
+    print(token)
+    ngrok.set_auth_token(token)
     hook_url = ngrok.connect(8501).replace("http", "https")
     print("Hook url: " + hook_url)
 
