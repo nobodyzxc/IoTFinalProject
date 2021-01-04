@@ -63,4 +63,3 @@ ifsymotion-prefix) __name__ == "__main__":
     vo.add_data(b2,"b2")
     print(vo.voice_com(a2))#t
     print(vo.voice_com(b1))#t
-
