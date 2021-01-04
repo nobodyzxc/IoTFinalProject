@@ -12,4 +12,5 @@ def gen_plate(plate):
     image.save(plate + '.png')
     return plate + '.png'
 
-gen_plate(plate)
+if __name__ == '__main__':
+    gen_plate(plate)

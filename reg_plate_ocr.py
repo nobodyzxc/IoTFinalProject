@@ -2,22 +2,6 @@ import cv2, sys
 import numpy as np
 import pytesseract
 
-img = cv2.imread(sys.argv[1])
-
-timeF = 10  # frame time
-
-# 從攝影機擷取一張影像
-ret, frame = 0, img
-
-dst = cv2.pyrMeanShiftFiltering(frame, 10, 50)#濾波
-gray = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)#灰度
-ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)#二值化
-
-#cv2.imshow("ShiftFiltering", dst)
-#cv2.imshow("threshold", thresh)
-
-cnts, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
 def passGuard(lt, rd):
     a, b = lt
     c, d = rd
@@ -102,42 +86,47 @@ def four_point_transform(image, pts):
 	# return the warped image
 	return warped
 
+def ocr(img):
+    ret, frame = 0, img
+    dst = cv2.pyrMeanShiftFiltering(frame, 10, 50)#濾波
+    gray = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)#灰度
+    ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)#二值化
+    cnts, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-for i in cnts:
+    cropped_image = None
+    for i in cnts:
 
-  #輪廓近似
-  peri = cv2.arcLength(i, True)
-  approx = cv2.approxPolyDP(i, 0.01*peri, True)
+      #輪廓近似
+      peri = cv2.arcLength(i, True)
+      approx = cv2.approxPolyDP(i, 0.01*peri, True)
 
-  if len(approx) == 4:
-    beg_point = (max(approx[i][0][0] for i in range(4)),
-                   max(approx[i][0][1] for i in range(4)))
-    end_point = (min(approx[i][0][0] for i in range(4)),
-                   min(approx[i][0][1] for i in range(4)))
-    if passGuard(beg_point, end_point):
-        beg_point = tuple(v + 10 for v in beg_point)
-        end_point = tuple(v - 10 for v in end_point)
-        color = (255, 255, 0)
-        #image = cv2.rectangle(frame, beg_point, end_point, color, 2)
-        points = np.array(sorted([[approx[i][0][0], approx[i][0][1]] for i in range(4)]))
+      if len(approx) == 4:
+        beg_point = (max(approx[i][0][0] for i in range(4)),
+                       max(approx[i][0][1] for i in range(4)))
+        end_point = (min(approx[i][0][0] for i in range(4)),
+                       min(approx[i][0][1] for i in range(4)))
+        if passGuard(beg_point, end_point):
+            beg_point = tuple(v + 10 for v in beg_point)
+            end_point = tuple(v - 10 for v in end_point)
+            color = (255, 255, 0)
+            #image = cv2.rectangle(frame, beg_point, end_point, color, 2)
+            points = np.array(sorted([[approx[i][0][0], approx[i][0][1]] for i in range(4)]))
 
-        image = draw_border(frame, *points, 15)
-        #xmax, ymax = beg_point
-        #xmin, ymin = end_point
-        #cropped_image = image[ymin:ymax, xmin:xmax]
-        cropped_image = four_point_transform(frame, points)
-        #cv2.imshow("result", cropped_image)
+            image = draw_border(frame, *points, 15)
+            #xmax, ymax = beg_point
+            #xmin, ymin = end_point
+            #cropped_image = image[ymin:ymax, xmin:xmax]
+            cropped_image = four_point_transform(frame, points)
+            #cv2.imshow("result", cropped_image)
 
-final = cropped_image
-text = pytesseract.image_to_string(cropped_image, lang='eng')
-print(text.strip())
+    #final = cropped_image
+    if cropped_image is not None:
+        text = pytesseract.image_to_string(cropped_image, lang='eng')
+        plate = text.strip()
+        cv2.imshow("focus_plate", image)
+        #cv2.imshow("final", final)
+        return plate
+    else: return None
 
-# 釋放攝影機
-# 關閉所有 OpenCV 視窗
-cv2.destroyAllWindows()
-cv2.imshow("target", image)
-cv2.imshow("final", final)
-cv2.waitKey(0)
-
-
-#img_bgr ,scan_pic= pic_scan.pic_process(self.pic_path)
+if __name__ == '__main__':
+    ocr(cv2.imread(sys.argv[1]))

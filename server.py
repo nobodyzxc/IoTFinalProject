@@ -54,10 +54,6 @@ def tg_report_other(message):
 
 
 def register(bot, update, args):
-    # bot.forwardMessage(
-    #     chat_id=ADMIN_ID,
-    #     from_chat_id=update.message.chat.id,
-    #     message_id=update.message.message_id)
 
     emoji = {
         '⭕': "ok" + " " + str(update.message.chat.id),
@@ -76,18 +72,16 @@ def play(bot, update):
         result = update.callback_query.data.split()
         mine, chat, *_ = result
 
-        if mine != 'no':
-            with open('./userlist.txt', 'a') as the_file:
-                the_file.write('{}\n'.format(chat))
-            update.callback_query.edit_message_text('用戶成功加入userlist')
+        if mine == 'ok':
+            update.callback_query.edit_message_text('已開門')
             bot.sendMessage(
                 chat_id=int(chat),
-                text="🌸 您已被加入用戶，祝您使用愉快")
+                text="大門已經開啟，如有問題請聯繫管理員")
         else:
-            update.callback_query.edit_message_text('不允許此用戶加入')
+            update.callback_query.edit_message_text('忽略此請求')
             bot.sendMessage(
                 chat_id=int(chat),
-                text="🚫 您被拒絕加入用戶名單")
+                text="大門已經開啟，如有問題請聯繫管理員")
     except Exception as e:
         print(e)
 
@@ -136,6 +130,26 @@ def add(bot, update, args):
         update.message.reply_text("🌷成功將用戶id {} 加入".format(int(args[0])))
     else:
         update.message.reply_text("❌您必須是管理者才可以使用add user的功能")
+
+@app.route('/access', methods=['POST'])
+def access_handler():
+    if request.method == "POST":
+        if 'user' in request.form and 'plate' in request.form:
+            user, plate = request.form['user'], request.form['plate']
+            emoji = {
+                '⭕ 開門': "ok" + " " + str(user),
+                '❌ 不開': "no" + " " + str(user)
+            }
+
+            bot.sendMessage(chat_id=user,
+                    text="辨識到車牌 '{}': 是否開門？".format(plate),
+                    reply_markup = InlineKeyboardMarkup(
+                        [[ InlineKeyboardButton(emoji, callback_data = hand)
+                            for emoji, hand in emoji.items()
+                        ]])
+                    )
+            return 'ok'
+    return 'failed'
 
 @app.route('/hook', methods=['POST'])
 def webhook_handler():
