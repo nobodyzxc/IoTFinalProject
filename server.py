@@ -114,8 +114,7 @@ def addRegistration(bot, update):
         json.dump(data, output)
 
     plate = gen_plate(new)
-
-    bot.send_photo(update.message.chat.id, photo=plate)
+    bot.send_photo(update.message.chat.id, photo=open(plate, 'rb'))
     update.message.reply_text(f'{new} 已加入')
 
 def start(bot, update):
@@ -175,9 +174,7 @@ dispatcher.add_handler(CallbackQueryHandler(play))
 
 def main():
     print("============ Setup ngrok ======================")
-    token = decrypt_token(os.path.join('meta', 'encrypted.ngrok.token'))
-    print(token)
-    ngrok.set_auth_token(token)
+    ngrok.set_auth_token(decrypt_token(os.path.join('meta', 'encrypted.ngrok.token')))
     hook_url = ngrok.connect(8501).replace("http", "https")
     print("Hook url: " + hook_url)
 
