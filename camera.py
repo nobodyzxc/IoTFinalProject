@@ -14,7 +14,7 @@ prev = 0
 
 pass_list = []
 
-def check(plates, results)
+def check(plates, results):
     for uid in plates:
         for plate in results:
             if plate in plates[uid]:
@@ -35,16 +35,16 @@ while True:
             results = results.split()
             access = check(plates, results)
             if access:
-                print(f"========= ACESS {plate} PASSS =========")
+                user, plate = access
                 if plate not in pass_list:
                     pass_list.append(plate)
-                    user, plate = access
+                    print(f"========= ACESS {plate} PASSS =========")
                     r = requests.post(
                             "http://localhost:8501/access",
                             data={'user': user, 'plate': plate})
                     print(r.status_code, r.reason)
             else:
-                print(f"error '{plate}'")
+                print(f"error '{results}'")
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

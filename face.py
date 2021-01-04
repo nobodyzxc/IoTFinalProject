@@ -42,7 +42,7 @@ if __name__ == "__main__":
     print(f.face_com("1.png"))
     print(f.face_com("2.png"))
     print(f.face_com("3.png"))
-    
+
     f.add_data("2.png","biden&trump")
 
     print(f.face_com("1.png"))

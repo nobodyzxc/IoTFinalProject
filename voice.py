@@ -47,7 +47,7 @@ class Voice:
         print("Your data not in our database.")
         return False
 
-ifsymotion-prefix) __name__ == "__main__":
+if __name__ == "__main__":
     vo = Voice()
     a1 = "a1.flac"
     a2 = "a2.flac"

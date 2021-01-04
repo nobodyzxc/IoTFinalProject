@@ -5,6 +5,11 @@ import telegram, requests
 from functools import partial
 from getpass import getpass
 
+from IOTF.comm import control_gate, show_LCD
+
+import serial
+from time import sleep
+
 from reg_plate_gen import gen_plate
 
 from flask import Flask, request
@@ -40,6 +45,7 @@ app = Flask(__name__)
 # Initial bot by Telegram access token
 tgtoken = decrypt_token(os.path.join('meta', 'encrypted.telegram.token'))
 bot = telegram.Bot(token=tgtoken)
+ino = serial.Serial("/dev/ttyACM0",9600)
 
 def tg_report_other(message):
     try:
@@ -70,18 +76,27 @@ def register(bot, update, args):
 def play(bot, update):
     try:
         result = update.callback_query.data.split()
-        mine, chat, *_ = result
+        mine, chat, plate, *_ = result
 
         if mine == 'ok':
             update.callback_query.edit_message_text('已開門')
             bot.sendMessage(
                 chat_id=int(chat),
                 text="大門已經開啟，如有問題請聯繫管理員")
+            show_LCD(ino, 1, plate)
+            sleep(3)
+            control_gate(ino, 1)
+            sleep(15)
+            control_gate(ino, 0)
+            sleep(3)
+            show_LCD(ino, -1, plate)
+
         else:
             update.callback_query.edit_message_text('忽略此請求')
             bot.sendMessage(
                 chat_id=int(chat),
                 text="大門已經開啟，如有問題請聯繫管理員")
+            show_LCD(ino, 0, '')
     except Exception as e:
         print(e)
 
@@ -137,8 +152,8 @@ def access_handler():
         if 'user' in request.form and 'plate' in request.form:
             user, plate = request.form['user'], request.form['plate']
             emoji = {
-                '⭕ 開門': "ok" + " " + str(user),
-                '❌ 不開': "no" + " " + str(user)
+                '⭕ 開門': "ok {} {}".format(user, plate),
+                '❌ 不開': "no {} {}".format(user, plate)
             }
 
             bot.sendMessage(chat_id=user,

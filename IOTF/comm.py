@@ -14,7 +14,7 @@ def control_gate(serial,command):
     elif command == 0:
         serial.write('L'.encode())
 
-def show_LCD(serial, command, line, userName=""):
+def show_LCD(serial, command, userName=""):
     '''
     commend : int
     line : int
@@ -28,7 +28,9 @@ def show_LCD(serial, command, line, userName=""):
         serial.write(userName.encode())
     elif command == 0:
         serial.write('B'.encode())
-    
+    else:
+        serial.write('C'.encode())
+
 
 if __name__ == "__main__":
     s = serial.Serial("/dev/cu.usbmodem145401",9600)
