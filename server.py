@@ -8,6 +8,9 @@ from getpass import getpass
 from IOTF.comm import control_gate, show_LCD
 
 import serial
+import voice
+import face
+
 from time import sleep
 
 from reg_plate_gen import gen_plate
@@ -17,6 +20,8 @@ from telegram.ext import Dispatcher, MessageHandler, Filters, Updater, StringCom
 from telegram import Location, InlineKeyboardMarkup, InlineKeyboardButton
 
 import pexpect
+
+NO_INO = True
 
 def decrypt_token(fn):
     global phrase
@@ -45,7 +50,9 @@ app = Flask(__name__)
 # Initial bot by Telegram access token
 tgtoken = decrypt_token(os.path.join('meta', 'encrypted.telegram.token'))
 bot = telegram.Bot(token=tgtoken)
-ino = serial.Serial("/dev/ttyACM0",9600)
+
+if not NO_INO:
+    ino = serial.Serial("/dev/ttyACM0",9600)
 
 def tg_report_other(message):
     try:
@@ -183,6 +190,90 @@ def createFolder(directory):
     except OSError:
         print ('Error: Creating directory. ' +  directory)
 
+def photo_handler(bot, update):
+
+    document = update.message.document
+    if not document:
+        filepath = os.path.join("face", str(update.message.chat.id) + '.jpg')
+        if os.path.isfile(filepath):
+            cmppath = os.path.join("face", 'cmp_' + str(update.message.chat.id) + '.jpg')
+
+            file_id = update.message.photo[-1].file_id
+            newFile = bot.getFile(file_id)
+            newFile.download(custom_path = cmppath)
+
+            fc = Face()
+            fc.add_data(filepath, "origin")
+            if fc.face_com(cmppath):
+                user, plate = str(update.message.chat.id), 'FACE'
+                emoji = {
+                    '⭕ 開門': "ok {} {}".format(user, plate),
+                    '❌ 不開': "no {} {}".format(user, plate)
+                }
+                bot.sendMessage(chat_id=user,
+                        text="人臉辨識成功，是否開門？",
+                        reply_markup = InlineKeyboardMarkup(
+                            [[ InlineKeyboardButton(emoji, callback_data = hand)
+                                for emoji, hand in emoji.items()
+                            ]])
+                        )
+            else:
+                bot.sendMessage(
+                chat_id=update.message.chat.id,
+                text="人臉不匹配")
+        else:
+            file_id = update.message.photo[-1].file_id
+            newFile = bot.getFile(file_id)
+            newFile.download(custom_path = filepath)
+            bot.sendMessage(
+                chat_id=update.message.chat.id,
+                text="人像已設定")
+    else:
+        bot.sendMessage(
+            chat_id=update.message.chat.id,
+            text="請傳送相片")
+
+def voice_handler(bot, update):
+
+    document = update.message.document
+    if not document:
+        filepath = os.path.join("voice", str(update.message.chat.id) + '.ogg')
+        if os.path.isfile(filepath):
+            cmppath = os.path.join("voice", 'cmp_' + str(update.message.chat.id) + '.ogg')
+            file_id = update.message.voice.file_id
+            newFile = bot.getFile(file_id)
+            newFile.download(custom_path = cmppath)
+            vo = Voice()
+            vo.add_data(filepath, "origin")
+            if vo.voice_com(cmppath):
+                user, plate = str(update.message.chat.id), 'VOICE'
+                emoji = {
+                    '⭕ 開門': "ok {} {}".format(user, plate),
+                    '❌ 不開': "no {} {}".format(user, plate)
+                }
+                bot.sendMessage(chat_id=user,
+                        text="聲音辨識成功，是否開門？",
+                        reply_markup = InlineKeyboardMarkup(
+                            [[ InlineKeyboardButton(emoji, callback_data = hand)
+                                for emoji, hand in emoji.items()
+                            ]])
+                        )
+            else:
+                bot.sendMessage(
+                chat_id=update.message.chat.id,
+                text="聲音不匹配")
+        else:
+            file_id = update.message.voice.file_id
+            newFile = bot.getFile(file_id)
+            newFile.download(custom_path = filepath)
+            bot.sendMessage(
+                chat_id=update.message.chat.id,
+                text="聲音已設定")
+    else:
+        bot.sendMessage(
+            chat_id=update.message.chat.id,
+            text="請傳送聲音")
+
 
 # New a dispatcher for bot
 dispatcher = Dispatcher(bot, None)
@@ -196,7 +287,9 @@ dispatcher.add_handler(CommandHandler('add', addRegistration))
 #dispatcher.add_handler(CommandHandler('add', add, pass_args=True))
 dispatcher.add_handler(CommandHandler('start', start))
 #dispatcher.add_handler(MessageHandler(Filters.document.pdf, reply_handler))
-#dispatcher.add_handler(MessageHandler(Filters.document.jpg, reply_handler))
+#dispatcher.add_handler(MessageHandler(Filters.document.image, reply_handler))
+dispatcher.add_handler(MessageHandler(Filters.photo, photo_handler))
+dispatcher.add_handler(MessageHandler(Filters.voice, voice_handler))
 #dispatcher.add_handler(MessageHandler(Filters.forwarded, reply_handler))
 dispatcher.add_handler(CallbackQueryHandler(play))
 

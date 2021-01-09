@@ -4,3 +4,5 @@ ngrok==0.0.1
 pyngrok==1.4.2
 python_telegram_bot==12.2.0
 pexpect==4.7.0
+Resemblyzer==0.1.1.dev0
+face-recognition==1.3.0
