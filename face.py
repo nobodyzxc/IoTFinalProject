@@ -14,9 +14,13 @@ class Face:
             print("person exist")
             return False
         img = face_recognition.load_image_file(f1)
-        embedd = face_recognition.face_encodings(img)[0]
-        self.database[name] = embedd
-        return True
+        faces = face_recognition.face_encodings(img)
+        if len(faces):
+            embedd = faces[0]
+            self.database[name] = embedd
+            return True
+        else: return False
+
     def face_com(self,f1):
         '''
             f1 : path to face image
@@ -25,10 +29,15 @@ class Face:
             print("Your data not in our database.")
             return False
         unkn = face_recognition.load_image_file(f1)
-        embedd_unkn = face_recognition.face_encodings(unkn)[0]
-        result = face_recognition.compare_faces(list(self.database.values()),embedd_unkn)
-        return True in result
-
+        faces = face_recognition.face_encodings(unkn)
+        if len(faces):
+            embedd_unkn = faces[0]
+            result = face_recognition.compare_faces(
+                    list(self.database.values()),
+                    embedd_unkn,
+                    tolerance=0.3)
+            return True in result
+        else: return False
 
 if __name__ == "__main__":
 

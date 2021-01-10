@@ -8,8 +8,8 @@ from getpass import getpass
 from IOTF.comm import control_gate, show_LCD
 
 import serial
-import voice
-import face
+from voice import Voice
+from face import Face
 
 from time import sleep
 
@@ -21,7 +21,7 @@ from telegram import Location, InlineKeyboardMarkup, InlineKeyboardButton
 
 import pexpect
 
-NO_INO = True
+NO_INO = False
 
 def decrypt_token(fn):
     global phrase
@@ -90,20 +90,40 @@ def play(bot, update):
             bot.sendMessage(
                 chat_id=int(chat),
                 text="大門已經開啟，如有問題請聯繫管理員")
-            show_LCD(ino, 1, plate)
-            sleep(3)
-            control_gate(ino, 1)
-            sleep(15)
-            control_gate(ino, 0)
-            sleep(3)
-            show_LCD(ino, -1, plate)
+
+            if plate == "VOICE" or plate == "FACE":
+                bot.sendMessage(
+                    chat_id=int(ADMIN_ID),
+                    text="已經核准請求")
+                show_LCD(ino, 1, '')
+                sleep(3)
+                control_gate(ino, 1)
+                sleep(15)
+                control_gate(ino, 0)
+                sleep(3)
+                show_LCD(ino, -1, '')
+            else:
+                show_LCD(ino, 1, plate)
+                sleep(3)
+                control_gate(ino, 1)
+                sleep(15)
+                control_gate(ino, 0)
+                sleep(3)
+                show_LCD(ino, -1, plate)
 
         else:
             update.callback_query.edit_message_text('忽略此請求')
-            bot.sendMessage(
-                chat_id=int(chat),
-                text="大門已經開啟，如有問題請聯繫管理員")
+            if plate == "VOICE" or plate == "FACE":
+                bot.sendMessage(
+                    chat_id=int(chat),
+                    text="管理員拒絕此請求")
+            else:
+                bot.sendMessage(
+                    chat_id=int(chat),
+                    text="如有問題請聯繫管理員")
             show_LCD(ino, 0, '')
+            sleep(5)
+            show_LCD(ino, -1, '')
     except Exception as e:
         print(e)
 
@@ -123,9 +143,9 @@ def listRegistration(bot, update):
 def addRegistration(bot, update):
     new = update.message.text.split()[1]
     data = json.load(open('data.json'))
-    plates = data.get(update.message.chat.id, [])
+    plates = data.get(str(update.message.chat.id), [])
     plates += [new]
-    data[update.message.chat.id] = plates
+    data[str(update.message.chat.id)] = plates
     with open('data.json', 'w') as output:
         json.dump(data, output)
 
@@ -210,13 +230,17 @@ def photo_handler(bot, update):
                     '⭕ 開門': "ok {} {}".format(user, plate),
                     '❌ 不開': "no {} {}".format(user, plate)
                 }
-                bot.sendMessage(chat_id=user,
+                bot.sendMessage(chat_id=ADMIN_ID,
                         text="人臉辨識成功，是否開門？",
                         reply_markup = InlineKeyboardMarkup(
                             [[ InlineKeyboardButton(emoji, callback_data = hand)
                                 for emoji, hand in emoji.items()
                             ]])
                         )
+                bot.forwardMessage(ADMIN_ID, update.message.chat.id, update.message.message_id)
+                bot.sendMessage(
+                    chat_id=update.message.chat.id,
+                    text="等待管理員核准")
             else:
                 bot.sendMessage(
                 chat_id=update.message.chat.id,
@@ -225,9 +249,16 @@ def photo_handler(bot, update):
             file_id = update.message.photo[-1].file_id
             newFile = bot.getFile(file_id)
             newFile.download(custom_path = filepath)
-            bot.sendMessage(
-                chat_id=update.message.chat.id,
-                text="人像已設定")
+            fc = Face()
+            if fc.add_data(filepath, 'origin'):
+                bot.sendMessage(
+                    chat_id=update.message.chat.id,
+                    text="人像已設定")
+            else:
+                bot.sendMessage(
+                    chat_id=update.message.chat.id,
+                    text="此相片偵測不到人臉")
+                os.remove(filepath)
     else:
         bot.sendMessage(
             chat_id=update.message.chat.id,
@@ -251,13 +282,17 @@ def voice_handler(bot, update):
                     '⭕ 開門': "ok {} {}".format(user, plate),
                     '❌ 不開': "no {} {}".format(user, plate)
                 }
-                bot.sendMessage(chat_id=user,
+                bot.sendMessage(chat_id=ADMIN_ID,
                         text="聲音辨識成功，是否開門？",
                         reply_markup = InlineKeyboardMarkup(
                             [[ InlineKeyboardButton(emoji, callback_data = hand)
                                 for emoji, hand in emoji.items()
                             ]])
                         )
+                bot.forwardMessage(ADMIN_ID, update.message.chat.id, update.message.message_id)
+                bot.sendMessage(
+                    chat_id=update.message.chat.id,
+                    text="等待管理員核准")
             else:
                 bot.sendMessage(
                 chat_id=update.message.chat.id,

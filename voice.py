@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 class Voice:
     def __init__(self):
-        self.encoder = VoiceEncoder()
+        self.encoder = VoiceEncoder("cpu")
         self.database = {}
     def add_data(self,v,name):
         '''
@@ -41,7 +41,8 @@ class Voice:
 
         for dk in self.database.keys():
             sims = embed @ self.database[dk] # bigger 0.75
-            if sims > 0.75:
+            print(dk, ' score :', sims)
+            if sims > 0.7:
                 print("welcome {}!".format(dk))
                 return True
         print("Your data not in our database.")
